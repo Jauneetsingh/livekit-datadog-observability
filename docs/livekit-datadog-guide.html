@@ -1,0 +1,153 @@
+<title>Your LiveKit Voice Agent in Datadog Agent Observability</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --panel:#fff; --panel2:#eef2f8; --ink:#141824; --mut:#59647a;
+    --line:#e2e7f1; --line2:#d2dae7;
+    --lk:#6d4bff; --stt:#2489d8; --llm:#0f9a92; --tts:#c026a6; --tool:#b7791f;
+    --good:#1a9d54; --good-bg:#e7f6ec; --bad:#d64545; --bad-bg:#fbe9e9;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0b0e16; --panel:#131826; --panel2:#0f1420; --ink:#e9edf6; --mut:#93a0b8;
+    --line:#222a3a; --line2:#2c3546; --lk:#8f74ff; --stt:#4aa6ec; --llm:#25c5bb; --tts:#e05bc8; --tool:#e0a640;
+    --good:#3ac06d; --good-bg:#122a1c; --bad:#ef6b6b; --bad-bg:#2c1717;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0b0e16; --panel:#131826; --panel2:#0f1420; --ink:#e9edf6; --mut:#93a0b8;
+    --line:#222a3a; --line2:#2c3546; --lk:#8f74ff; --stt:#4aa6ec; --llm:#25c5bb; --tts:#e05bc8; --tool:#e0a640;
+    --good:#3ac06d; --good-bg:#122a1c; --bad:#ef6b6b; --bad-bg:#2c1717;
+  }
+  *{box-sizing:border-box;}
+  .doc{background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.6; font-size:15px;}
+  .wrap{max-width:1000px; margin:0 auto; padding:40px 20px 70px;}
+  .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--lk); margin:0 0 8px;}
+  h1{font-size:clamp(25px,4vw,36px); letter-spacing:-.02em; margin:0 0 10px; text-wrap:balance; font-weight:800;}
+  .lede{color:var(--mut); max-width:70ch; margin:0 0 4px;}
+  .verified{display:inline-block; margin-top:12px; font-family:var(--mono); font-size:12.5px; color:var(--good); background:var(--good-bg); border:1px solid var(--good); border-radius:999px; padding:4px 12px;}
+  h2{font-size:13px; font-family:var(--mono); letter-spacing:.13em; text-transform:uppercase; color:var(--mut); margin:44px 0 4px; padding-bottom:10px; border-bottom:1px solid var(--line);}
+  h2 b{color:var(--ink);} h3{font-size:16px; margin:22px 0 8px;}
+  p{margin:10px 0;} code{font-family:var(--mono); font-size:.86em; background:var(--panel2); padding:1px 6px; border-radius:6px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr;}}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:13px; padding:15px;}
+  .card h3{margin:0 0 6px; font-size:15px;} .bad-card{border-left:3px solid var(--bad);} .good-card{border-left:3px solid var(--good);}
+  .sess{background:var(--panel); border:1px solid var(--line); border-radius:13px; padding:14px 16px; font-family:var(--mono); font-size:12.5px; overflow-x:auto;}
+  .sess .hd{color:var(--mut); font-size:11px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:8px;}
+  .row{display:flex; gap:8px; align-items:baseline; padding:4px 8px; border-radius:7px; border-left:3px solid var(--nb,var(--mut)); background:var(--panel2); margin:3px 0; white-space:nowrap;}
+  .row .nm{font-weight:700; color:var(--nb);} .row .m{color:var(--mut); font-size:11px;}
+  .stt{--nb:var(--stt);} .llm{--nb:var(--llm);} .tts{--nb:var(--tts);} .tool{--nb:var(--tool);} .usr{--nb:var(--lk);}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-family:var(--mono); font-size:12px; color:var(--mut);}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:middle;}
+  pre{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:12.5px; margin:8px 0 0;}
+  .tscroll{overflow-x:auto; border:1px solid var(--line); border-radius:12px; margin-top:14px;}
+  table{border-collapse:collapse; width:100%; font-size:13.5px; min-width:520px;}
+  th,td{text-align:left; padding:9px 13px; border-bottom:1px solid var(--line); vertical-align:top;}
+  thead th{background:var(--panel2); font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mut);}
+  tbody tr:last-child td{border-bottom:0;} td code{color:var(--llm);}
+  ol.steps{counter-reset:s; list-style:none; padding:0; margin:16px 0 0;}
+  ol.steps li{position:relative; padding:12px 14px 12px 46px; background:var(--panel); border:1px solid var(--line); border-radius:11px; margin-bottom:10px;}
+  ol.steps li::before{counter-increment:s; content:counter(s); position:absolute; left:12px; top:12px; width:24px; height:24px; border-radius:7px; background:var(--lk); color:#fff; font-family:var(--mono); font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center;}
+  .callout{background:var(--good-bg); border:1px solid var(--good); border-radius:11px; padding:12px 14px; margin-top:16px; font-size:14px;}
+  .foot{margin-top:44px; padding-top:16px; border-top:1px solid var(--line); font-family:var(--mono); font-size:12px; color:var(--mut);}
+</style>
+
+<div class="doc"><div class="wrap">
+  <p class="eyebrow">Voice AI · LiveKit → Datadog Agent Observability</p>
+  <h1>Seeing your LiveKit voice agent — every turn and tool call</h1>
+  <p class="lede">How a LiveKit Agents call becomes a full agent trace in Datadog <b>LLM (Agent) Observability</b> — the LLM turns, the STT/TTS, and especially the <b>tool calls</b> that were previously invisible.</p>
+  <span class="verified">✓ Verified live — tool calls, LLM turns &amp; token usage confirmed in Agent Observability</span>
+
+  <h2><b>The problem</b> we started with</h2>
+  <div class="grid2">
+    <div class="card bad-card">
+      <h3>Symptom</h3>
+      <p class="lede" style="margin:0">Calls happened, but <b>nothing inside LiveKit</b> appeared in Datadog, and <b>tool calls were completely invisible</b>. Only the worker's background WebSocket keepalives showed in APM.</p>
+    </div>
+    <div class="card bad-card">
+      <h3>Why the "obvious" paths fail</h3>
+      <p class="lede" style="margin:0"><b>①</b> LiveKit's OTEL→ddtrace bridge silently drops the spans. <b>②</b> The Agent's OTLP receiver wouldn't start. <b>③</b> ddtrace can't auto-instrument <code>openai</code> v2 (which LiveKit requires). All three dead-ended.</p>
+    </div>
+  </div>
+
+  <h2><b>What made it work</b></h2>
+  <div class="grid2">
+    <div class="card good-card">
+      <h3>1 · LLM Obs bridge</h3>
+      <p class="lede" style="margin:0">Instrument the agent's own hooks with the ddtrace <code>LLMObs</code> SDK: wrap each <code>@function_tool</code> in <code>LLMObs.tool(...)</code> and the model turn in <code>LLMObs.llm(...)</code>. Ships over the proven APM intake (:8126).</p>
+    </div>
+    <div class="card good-card">
+      <h3>2 · Thread job executor</h3>
+      <p class="lede" style="margin:0">LiveKit runs each call in a forked subprocess whose telemetry never exported. <code>JobExecutorType.THREAD</code> runs calls in the main, ddtrace-instrumented process — so the spans flush.</p>
+    </div>
+  </div>
+
+  <h2><b>What the customer now sees</b> in Agent Observability</h2>
+  <p class="lede">One call = one <b>session</b> (grouped by the LiveKit room). Real spans from a verified call:</p>
+  <div class="sess">
+    <div class="hd">Session · ml_app: livekit-loan-agent · one loan call</div>
+    <div class="row tts"><span class="nm">llm → tts</span><span class="m">greeting: "What's the purpose of the loan, and your annual income?"</span></div>
+    <div class="row usr"><span class="nm">user</span><span class="m">"a car repair… I make about $60,000 a year"</span></div>
+    <div class="row tool"><span class="nm">check_loan_eligibility</span><span class="m">in {income:60000} → out {approved:true, apr:6.5, amount:18000}</span></div>
+    <div class="row llm"><span class="nm">llm</span><span class="m">gpt-4o · 445 tokens · presents the 6.5% APR / $18,000 offer</span></div>
+    <div class="row tts"><span class="nm">tts</span><span class="m">speaks the offer</span></div>
+    <div class="row usr"><span class="nm">user</span><span class="m">"okay, let's start the application"</span></div>
+    <div class="row tool"><span class="nm">create_loan_application</span><span class="m">tool_call {amount:18000, apr:6.5, purpose:"car repair"} → ref LN-…</span></div>
+    <div class="row llm"><span class="nm">llm</span><span class="m">gpt-4o · 584 tokens · confirms submission + reference number</span></div>
+  </div>
+  <div class="legend">
+    <span><i style="background:var(--lk)"></i>caller turn</span>
+    <span><i style="background:var(--tool)"></i>tool call</span>
+    <span><i style="background:var(--llm)"></i>LLM (tokens)</span>
+    <span><i style="background:var(--tts)"></i>TTS</span>
+  </div>
+
+  <h2><b>Where to look</b></h2>
+  <div class="tscroll"><table>
+    <thead><tr><th>To see…</th><th>Go to</th><th>Filter</th></tr></thead>
+    <tbody>
+      <tr><td>The whole call as one conversation</td><td>LLM Observability → <b>Sessions</b></td><td>ml_app <code>livekit-loan-agent</code></td></tr>
+      <tr><td>Every tool call + its arguments</td><td>LLM Observability → Traces</td><td><code>@ml_app:livekit-loan-agent</code> · span kind <code>tool</code></td></tr>
+      <tr><td>LLM turns, tokens, cost</td><td>LLM Observability</td><td>span kind <code>llm</code></td></tr>
+      <tr><td>Infra view of the worker</td><td>APM → Services</td><td><code>service:livekit-loan-agent</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2><b>The setup</b> (what to keep)</h2>
+  <h3>In the worker (agent.py)</h3>
+  <pre>from ddtrace.llmobs import LLMObs
+LLMObs.enable(ml_app="livekit-loan-agent")          # at import, in the main process
+
+class LoanAgent(Agent):
+    async def llm_node(self, *a, **k):               # wrap each model turn
+        with LLMObs.llm(model_name="gpt-4o", name="llm",
+                        model_provider="azure_openai", session_id=self._sid) as s:
+            ...; async for chunk in super().llm_node(*a, **k): yield chunk
+
+    @function_tool
+    async def check_loan_eligibility(self, ctx, annual_income, requested_amount=0):
+        with LLMObs.tool(name="check_loan_eligibility", session_id=self._sid) as s:
+            ...                                       # tool call now visible
+
+# THREAD executor: run calls in the instrumented process so spans flush
+cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint,
+                          job_executor_type=JobExecutorType.THREAD))</pre>
+  <h3>Run + environment</h3>
+  <pre>ddtrace-run python agent.py start
+
+DD_AGENT_HOST=datadog-agent   DD_TRACE_AGENT_PORT=8126
+DD_SERVICE=livekit-loan-agent DD_ENV=demo
+DD_LLMOBS_ENABLED=1           DD_LLMOBS_ML_APP=livekit-loan-agent
+LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET
+AZURE_OPENAI_* (LLM)          AZURE_SPEECH_KEY / AZURE_SPEECH_REGION (STT+TTS)</pre>
+
+  <h2><b>Verify in 3 steps</b></h2>
+  <ol class="steps">
+    <li>Worker logs <code>registered worker</code>, then on a call <code>LLM Obs bridge active — session_id=…</code>.</li>
+    <li>Make a call (real client or the LiveKit Agents Playground). Ask for a loan and give an income so a tool fires.</li>
+    <li>LLM Observability → filter <code>@ml_app:livekit-loan-agent</code> → open the session → see the <b>tool</b>, <b>llm</b>, and <b>tts</b> spans with arguments and tokens.</li>
+  </ol>
+
+  <div class="callout"><b>The one gotcha:</b> a worker can run for days with zero data — LiveKit only traces once a participant <b>joins a room</b>. An idle registered worker is normal; you need an actual call before any trace exists.</div>
+
+  <div class="foot">LiveKit Agents · ddtrace LLMObs bridge · THREAD executor → Datadog Agent (:8126) → LLM (Agent) Observability. Verified with live tool calls.</div>
+</div></div>

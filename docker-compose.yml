@@ -1,0 +1,33 @@
+# Self-contained stack: a Datadog Agent + the LiveKit voice-agent worker.
+# Everything inside LiveKit (LLM turns + function/tool calls) shows up in
+# Datadog LLM Observability, grouped as ONE trace per call.
+services:
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:7
+    container_name: dd-agent
+    environment:
+      DD_API_KEY: ${DD_API_KEY:?set DD_API_KEY in .env}
+      DD_SITE: ${DD_SITE:-datadoghq.com}
+      DD_APM_ENABLED: "true"
+      DD_APM_NON_LOCAL_TRAFFIC: "true"      # accept traces from the worker container
+      DD_LOGS_ENABLED: "true"
+    ports:
+      - "8126:8126"                         # APM intake (ddtrace -> agent)
+
+  livekit-agent:
+    build: .
+    container_name: livekit-loan-agent
+    env_file: .env
+    depends_on:
+      - datadog-agent
+    environment:
+      # --- Datadog: tracing + LLM Observability to the agent above ---
+      DD_AGENT_HOST: datadog-agent
+      DD_TRACE_AGENT_PORT: "8126"
+      DD_SERVICE: livekit-loan-agent
+      DD_ENV: demo
+      DD_LLMOBS_ENABLED: "1"
+      DD_LLMOBS_ML_APP: livekit-loan-agent
+      DD_LLMOBS_AGENTLESS_ENABLED: "0"
+      # DD_TRACE_OTEL_ENABLED is deliberately NOT set — see the README gotcha.
+      # LIVEKIT_* and AZURE_* come from .env
